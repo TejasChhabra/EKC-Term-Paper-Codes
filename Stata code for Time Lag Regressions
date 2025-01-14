@@ -1,3 +1,5 @@
+** Using the subsetted data set from the R code
+
 encode countryy, gen(id) //this generates numeric values for your nation variable (it is string)
 xtset id year // this sets panel as id and year
 destring co2pc, replace // makes the co2pc variable numeric from string
