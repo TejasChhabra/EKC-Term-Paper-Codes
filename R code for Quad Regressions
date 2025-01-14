@@ -1,0 +1,72 @@
+rm(list=ls())
+library(ggplot2)
+library(dplyr)
+library(lmtest)
+library(olsrr)
+library(sandwich)
+library(margins)
+library(plm) #optional
+library(stargazer)
+library(lfe)
+setwd("Choose your relevant working directory")
+finalgdpemissionsdata<-read.csv(file.choose())
+
+# finding per capita values  (using 0.47 in the gdp case to control for price changes)
+finalgdpemissionsdata$co2<-as.numeric(finalgdpemissionsdata$Total.CO2.emissions.from.fossil.fuels.and.cement.production..thousand.metric.tons.of.C.)-as.numeric(finalgdpemissionsdata$Emissions.from.gas.flaring)
+finalgdpemissionsdata$co2pc<-as.numeric(finalgdpemissionsdata$co2)/as.numeric(finalgdpemissionsdata$pop)
+finalgdpemissionsdata$gdppc<-as.numeric(finalgdpemissionsdata$rgdpe*0.47)/as.numeric(finalgdpemissionsdata$pop)
+finalgdpemissionsdata$so2pc<-as.numeric(finalgdpemissionsdata$total_SO2)/as.numeric(finalgdpemissionsdata$pop)
+
+# subsetting 
+subset1 <- subset(finalgdpemissionsdata,year > 1950 & year < 2018)
+
+# subsetting 2 
+subset2 <- subset1 %>%
+  filter(Nation == "BANGLADESH" |
+           Nation =="INDIA" | 
+           Nation == "THAILAND" | 
+           Nation == "MALAYSIA" | 
+           Nation == "INDONESIA"| 
+           Nation == "NEPAL"| 
+           Nation == "PHILIPPINES" | 
+           Nation == "CHINA" |
+           Nation == "SOUTH KOREA"| 
+           Nation == "UNITED ARAB EMIRATES"|
+           Nation == "TAIWAN"|
+           Nation == "SINGAPORE"| Nation == "JAPAN")
+
+
+#scatter plot for all countries for CO2 
+ggplot(data=subset2)+geom_point(aes(x=gdppc, y=co2pc))+ xlab("GDP per capita")+
+  ylab("CO2 emissions Per Capita")+ggtitle("Scatter Plot of GDP and CO2")
+
+# visualing the data with a line of best fit
+ggplot(data=subset2)+geom_smooth(aes(x=gdppc,y=co2pc))+xlab("GDP Per Capita")+
+  ylab("CO2 Emissions Per Capita")+ggtitle("Smooth Line of CO2 and GDP")
+
+#scatter plot for all countries for SO2 
+ggplot(data=subset2)+geom_point(aes(x=gdppc, y=so2pc))+ xlab("GDP per capita")+
+  ylab("SO2 emissions Per Cpaita")+ggtitle("Scatter Plot of GDP and SO2")
+
+# visualing the data with a line of best fit
+ggplot(data=subset2)+geom_smooth(aes(x=gdppc,y=so2pc))+xlab("GDP Per Capita")+
+  ylab("SO2 Emissions Per Capita")+ggtitle("Smooth Line of SO2 and GDP")
+
+# Running quadratic regressions and finding the relevant turning points 
+
+library(lfe)
+model1 <- felm(co2pc~gdppc+I(gdppc^2)|Nation + year |0|Nation,subset2)
+turningpoint1 <--model1$coefficients[1]/(2*model1$coefficients[2])
+print(turningpoint1)
+stargazer(model1, type="text")
+
+model2 <- felm(so2pc~gdppc+I(gdppc^2)|Nation + year |0|Nation,subset1)
+turningpoint2 <--model2$coefficients[1]/(2*model2$coefficients[2])
+print(turningpoint2)
+stargazer(model2, type="text")
+
+# presenting the results together, publishing and saving them 
+stargazer(model1,model2, type="text") 
+stargazer(model1,model2, type="html", out = "regressionsekc.html")  
+
+
